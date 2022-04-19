@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+
+version="0.1.0"
+
+
+while [[ "$1" =~ ^- && ! "$1" == "--" ]]; do case $1 in
+	-V | --version )
+		echo quenk v$version
+		exit
+		;;
+	-h | --help )
+		echo "┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓"
+		echo "┃ quenk v$version - help                                 ┃"
+		echo "┠─────────────────────────────────────────────────────┨"
+		echo "┃ -h --help           - Print this message and exit   ┃"
+		echo "┃ -V --version        - Print version number and exit ┃"
+		echo "┃ -e --encrypt        - Set mode to encrypt           ┃"
+		echo "┃ -d --decrypt        - Set mode to decrypt           ┃"
+		echo "┃ -i --in <file>      - Set input file                ┃"
+		echo "┃ -o --out <file>     - Set output file               ┃"
+		echo "┃ -p --pub <file>     - Set public key                ┃"
+		echo "┃ -s --priv <file>    - Set private key               ┃"
+		echo "┃ -m --message <file> - Set message                   ┃"
+		echo "┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛"
+		exit
+		;;
+	-e | --encrypt )
+		encrypt=1
+		;;
+	-d | --decrypt )
+		decrypt=1
+		;;
+	-i | --in )
+		shift; in=$1
+		;;
+	-o | --out )
+		shift; out=$1
+		;;
+	-p | --pub )
+		shift; pub=$1
+		;;
+	-s | --priv )
+		shift; priv=$1
+		;;
+	-m | --message )
+		shift; message=$1
+		;;
+esac; shift; done
+if [[ "$1" == '--' ]]; then shift; fi
+
+
+
+if [[ -n $in && -z $message ]]; then
+	if [[ -e $in ]]; then
+		message=$(cat $in)
+	else
+		echo "File \"$in\" does not exist!"
+		exit
+	fi
+elif [[ -z $message ]]; then
+	echo "No message or input file specified!"
+	exit
+fi
+
+
+if [[ $encrypt -eq 1 ]]; then
+	if [[ -n $pub ]]; then
+		result=$(echo $message | openssl rsautl -encrypt -inkey $pub -pubin | base64 | tr -d '\n')
+	else
+		echo "Public key not set!"
+		exit
+	fi
+elif [[ $decrypt -eq 1 ]]; then
+	if [[ -n $priv ]]; then
+		result=$(echo $message | base64 -d | openssl rsautl -decrypt -inkey $priv)
+	else
+		echo "Private key not set!"
+		exit
+	fi
+fi
+
+if [[ -n $out ]]; then
+	echo $result > $out
+else
+	echo $result
+fi
